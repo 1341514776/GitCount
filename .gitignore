@@ -1,0 +1,8 @@
+bin/
+obj/
+dist/
+.vs/
+.smoke/
+*.user
+*.suo
+*.log
