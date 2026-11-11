@@ -1,0 +1,1060 @@
+<Window x:Class="GitCount.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="GitCount - 多项目 Git 统计"
+        Width="1380" Height="940"
+        MinWidth="1120" MinHeight="720"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="13"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        AllowDrop="True"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing"
+        DragOver="Window_DragOver"
+        Drop="Window_Drop">
+    <Window.Resources>
+        <Style x:Key="NumberCellText" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        </Style>
+        <Style x:Key="RightColumnHeader"
+               TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="286" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#0B1220" Offset="0" />
+                    <GradientStop Color="#0D1729" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <Grid Margin="22,24,22,20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                    <Border Width="44" Height="44" CornerRadius="13" Background="#2563EB">
+                        <Grid>
+                            <TextBlock Text="G"
+                                       FontFamily="Segoe UI"
+                                       FontSize="25"
+                                       FontWeight="Bold"
+                                       Foreground="White"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="0,-4,0,0" />
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Bottom"
+                                        Margin="0,0,0,7">
+                                <Border Width="3" Height="5" Background="#BFDBFE" Margin="0,0,2,0" />
+                                <Border Width="3" Height="8" Background="#BFDBFE" Margin="0,0,2,0" />
+                                <Border Width="3" Height="11" Background="#BFDBFE" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <StackPanel Margin="13,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="GitCount" FontSize="20" FontWeight="Bold" Foreground="White" />
+                        <TextBlock Text="多项目提交统计" FontSize="11" Foreground="#8290A8" Margin="0,2,0,0" />
+                    </StackPanel>
+                </StackPanel>
+
+                <Button Grid.Row="1"
+                        Style="{StaticResource PrimaryButton}"
+                        Height="36"
+                        Margin="0,22,0,0"
+                        Click="AddProject_Click"
+                        IsEnabled="{Binding IsNotBusy}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="+" FontSize="18" FontWeight="Normal" VerticalAlignment="Center" Margin="0,-2,7,0" />
+                        <TextBlock Text="添加项目" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <Grid Grid.Row="2" Margin="0,22,0,10">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="项目列表" FontSize="12" FontWeight="SemiBold" Foreground="#E4E7EC" />
+                        <Border Background="#18243A" CornerRadius="8" Padding="7,2" Margin="8,0,0,0">
+                            <TextBlock Text="{Binding ProjectCountText}" FontSize="10" Foreground="#AFC0DB" />
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="全选" Style="{StaticResource TextButton}" Click="SelectAll_Click" Foreground="#7DAEFF" />
+                        <Button Content="全不选" Style="{StaticResource TextButton}" Click="SelectNone_Click" Foreground="#7DAEFF" Margin="2,0,0,0" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Row="3">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Projects}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#121D30"
+                                            BorderBrush="#1E2C43"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="12,10"
+                                            Margin="0,0,0,9">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Row="0" Grid.Column="0"
+                                                      IsChecked="{Binding IsIncluded, Mode=TwoWay}"
+                                                      VerticalAlignment="Center"
+                                                      IsEnabled="{Binding DataContext.IsNotBusy, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                                       Text="{Binding Name}"
+                                                       Foreground="#F2F4F7"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="13"
+                                                       Margin="10,0,6,0"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding Name}" />
+                                            <Button Grid.Row="0" Grid.Column="2"
+                                                    Content="×"
+                                                    Style="{StaticResource SidebarRemoveButton}"
+                                                    Tag="{Binding}"
+                                                    Click="RemoveProject_Click"
+                                                    ToolTip="移除项目"
+                                                    IsEnabled="{Binding DataContext.IsNotBusy, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                                       Text="{Binding Path}"
+                                                       Foreground="#7D8AA1"
+                                                       FontSize="10.5"
+                                                       Margin="10,4,0,0"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding Path}" />
+                                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                                       Text="!"
+                                                       Foreground="#F79009"
+                                                       FontWeight="Bold"
+                                                       FontSize="12"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       ToolTip="{Binding ErrorToolTip}"
+                                                       Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Border Background="#0F192A"
+                            BorderBrush="#1E2C43"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="20,28"
+                            VerticalAlignment="Top"
+                            Visibility="{Binding HasNoProjects, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <Border Width="42" Height="42" CornerRadius="12" Background="#18243A" HorizontalAlignment="Center">
+                                <TextBlock Text="+"
+                                           FontSize="23"
+                                           Foreground="#6E8BB8"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Margin="0,-2,0,0" />
+                            </Border>
+                            <TextBlock Text="还没有项目"
+                                       Foreground="#D0D5DD"
+                                       FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,12,0,0" />
+                            <TextBlock Text="点击上方按钮，或把 Git 仓库文件夹拖入窗口"
+                                       Foreground="#7D8AA1"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"
+                                       TextAlignment="Center"
+                                       Margin="0,5,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <StackPanel Grid.Row="4" Margin="0,16,0,0">
+                    <Border Height="1" Background="#1E2C43" Margin="0,0,0,14" />
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse Width="7" Height="7" Fill="{Binding GitStatusTone, Converter={StaticResource StatusBrush}}" />
+                            <TextBlock Text="{Binding GitStatusText}"
+                                       Foreground="#98A2B3"
+                                       FontSize="11"
+                                       Margin="8,0,0,0"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding GitStatusTooltip}" />
+                        </StackPanel>
+                        <TextBlock Text="本地统计"
+                                   Foreground="#56657D"
+                                   FontSize="10"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                    <TextBlock Text="项目配置保存在本机"
+                               Foreground="#56657D"
+                               FontSize="10"
+                               Margin="0,7,0,0" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1" Margin="28,22,28,18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <StackPanel>
+                    <TextBlock Text="提交统计"
+                               FontSize="26"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Text="跨项目汇总每个人的提交、新增与删除行数"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,5,0,0" />
+                </StackPanel>
+                <Border HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Background="#EAF2FF"
+                        CornerRadius="10"
+                        Padding="11,6">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="6" Height="6" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="本地运行 · 数据不上传" FontSize="11" Foreground="#175CD3" Margin="7,0,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="18,14" Margin="0,16,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="时间范围" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <ComboBox Width="132"
+                                  Margin="10,0,0,0"
+                                  ItemsSource="{Binding DateRanges}"
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedItem="{Binding SelectedDateRange, Mode=TwoWay}"
+                                  IsEnabled="{Binding IsNotBusy}" />
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="12,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Visibility="{Binding IsCustomRange, Converter={StaticResource BoolToVisibility}}">
+                            <DatePicker Width="128"
+                                        SelectedDate="{Binding StartDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        IsEnabled="{Binding IsNotBusy}" />
+                            <TextBlock Text="至" Foreground="{StaticResource TextMutedBrush}" Margin="8,0" VerticalAlignment="Center" />
+                            <DatePicker Width="128"
+                                        SelectedDate="{Binding EndDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        IsEnabled="{Binding IsNotBusy}" />
+                        </StackPanel>
+                        <CheckBox Content="所有分支"
+                                  IsChecked="{Binding IncludeAllBranches, Mode=TwoWay}"
+                                  IsEnabled="{Binding IsNotBusy}"
+                                  Margin="22,0,0,0"
+                                  VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="取消"
+                                Style="{StaticResource SecondaryButton}"
+                                Margin="0,0,10,0"
+                                Click="CancelStatistics_Click"
+                                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                        <Button Content="开始统计"
+                                Style="{StaticResource PrimaryButton}"
+                                MinWidth="108"
+                                Click="StartStatistics_Click"
+                                IsEnabled="{Binding IsNotBusy}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2" Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="17,14" Margin="0,0,12,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="40" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="项目数" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="{Binding SelectedProjectCount}" FontSize="26" FontWeight="Bold" Margin="0,2,0,0" />
+                            <TextBlock Text="{Binding ProjectSelectionHint}" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="11" Background="#EFF4FF" VerticalAlignment="Top">
+                            <TextBlock Text="项" Foreground="#2563EB" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="17,14" Margin="0,0,12,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="40" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="提交次数" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="{Binding TotalCommits, StringFormat={}{0:N0}}" FontSize="26" FontWeight="Bold" Margin="0,2,0,0" />
+                            <TextBlock Text="{Binding ContributorHint}" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="11" Background="#F4F0FF" VerticalAlignment="Top">
+                            <TextBlock Text="提" Foreground="#7A5AF8" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="17,14" Margin="0,0,12,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="40" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="新增行数" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="{Binding TotalAdditions, StringFormat={}{0:N0}}" FontSize="26" FontWeight="Bold" Margin="0,2,0,0" />
+                            <TextBlock Text="选中项目合计" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="11" Background="#ECFDF3" VerticalAlignment="Top">
+                            <TextBlock Text="+" Foreground="#12B76A" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,0" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="3" Style="{StaticResource CardStyle}" Padding="17,14" Margin="0,0,12,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="40" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="删除行数" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="{Binding TotalDeletions, StringFormat={}{0:N0}}" FontSize="26" FontWeight="Bold" Margin="0,2,0,0" />
+                            <TextBlock Text="选中项目合计" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="11" Background="#FEF3F2" VerticalAlignment="Top">
+                            <TextBlock Text="−" Foreground="#F04438" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-3,0,0" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="4" Style="{StaticResource CardStyle}" Padding="17,14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="40" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="净变化" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="{Binding TotalNet, Converter={StaticResource SignedNumber}}"
+                                       Foreground="{Binding TotalNet, Converter={StaticResource NetBrush}}"
+                                       FontSize="26" FontWeight="Bold" Margin="0,2,0,0" />
+                            <TextBlock Text="新增 − 删除" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="11" Background="#ECFDF3" VerticalAlignment="Top">
+                            <TextBlock Text="∑" Foreground="#12B76A" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="3" Style="{StaticResource CardStyle}" Margin="0,16,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="56" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="20,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="统计结果" FontSize="15" FontWeight="SemiBold" />
+                            <Border Background="#F2F4F7" CornerRadius="8" Padding="8,3" Margin="10,0,0,0">
+                                <TextBlock Text="{Binding ResultScopeText}" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" />
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <StackPanel Margin="0,0,12,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding RangeCaption}" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                                <TextBlock Text="{Binding ResultTimestampText}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <Button Content="导出 CSV"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Click="ExportCsv_Click"
+                                    IsEnabled="{Binding CanExport}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="1"
+                            Background="#FFFAEB"
+                            BorderBrush="#FEDF89"
+                            BorderThickness="0,1,0,1"
+                            Padding="20,7"
+                            Visibility="{Binding IsResultStale, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="!" Foreground="#B54708" FontWeight="Bold" />
+                            <TextBlock Text="统计条件已变更，当前结果尚未刷新。" FontSize="11" Foreground="#B54708" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <TabControl Grid.Row="2" Margin="20,8,20,14">
+                        <TabItem Header="人员汇总">
+                            <Grid Background="White">
+                                <DataGrid ItemsSource="{Binding AuthorRows}">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="贡献者" Width="2.3*" SortMemberPath="DisplayName">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Border Width="32" Height="32" CornerRadius="16" Background="#EAF2FF">
+                                                            <TextBlock Text="{Binding Initial}"
+                                                                       Foreground="#2563EB"
+                                                                       FontWeight="Bold"
+                                                                       FontSize="13"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding DisplayName}"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="13"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       ToolTip="{Binding DisplayName}" />
+                                                            <TextBlock Text="{Binding EmailDisplay}"
+                                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                                       FontSize="10.5"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       ToolTip="{Binding EmailDisplay}" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="提交次数"
+                                                            Binding="{Binding Commits, StringFormat={}{0:N0}}"
+                                                            Width="90"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="新增行数"
+                                                            Binding="{Binding Additions, StringFormat={}{0:N0}}"
+                                                            Width="100"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="删除行数"
+                                                            Binding="{Binding Deletions, StringFormat={}{0:N0}}"
+                                                            Width="100"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="净变化"
+                                                            Binding="{Binding Net, Converter={StaticResource SignedNumber}}"
+                                                            Width="100"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource NumberCellText}">
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                    <Setter Property="Foreground" Value="{Binding Net, Converter={StaticResource NetBrush}}" />
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="变更文件"
+                                                            Binding="{Binding ChangedFiles, StringFormat={}{0:N0}}"
+                                                            Width="90"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="项目数"
+                                                            Binding="{Binding ProjectCount, StringFormat={}{0:N0}}"
+                                                            Width="78"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <Border Background="White"
+                                        Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="60" Height="60" CornerRadius="18" Background="#EFF4FF">
+                                            <TextBlock Text="∑"
+                                                       FontSize="26"
+                                                       FontWeight="Bold"
+                                                       Foreground="#2563EB"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
+                                        </Border>
+                                        <TextBlock Text="{Binding EmptyStateTitle}"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,14,0,0" />
+                                        <TextBlock Text="{Binding EmptyStateDescription}"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   TextAlignment="Center"
+                                                   MaxWidth="430"
+                                                   Margin="0,7,0,0" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem Header="分项目统计">
+                            <Grid Background="White">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="168" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Margin="0,0,0,6">
+                                    <TextBlock Text="项目汇总" FontSize="12" FontWeight="SemiBold" />
+                                    <TextBlock Text="按新增行数排序"
+                                               FontSize="10.5"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+
+                                <DataGrid Grid.Row="1"
+                                          ItemsSource="{Binding ProjectSummaryRows}"
+                                          RowHeight="48"
+                                          ColumnHeaderHeight="38">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="项目" Width="2*" SortMemberPath="Name">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Border Width="7" Height="7" CornerRadius="4" Background="#2563EB" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12.5" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Path}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="15,3,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="提交"
+                                                            Binding="{Binding CommitCount, StringFormat={}{0:N0}}"
+                                                            Width="74"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="新增"
+                                                            Binding="{Binding Additions, StringFormat={}{0:N0}}"
+                                                            Width="86"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="删除"
+                                                            Binding="{Binding Deletions, StringFormat={}{0:N0}}"
+                                                            Width="86"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="净变化"
+                                                            Binding="{Binding Net, Converter={StaticResource SignedNumber}}"
+                                                            Width="88"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource NumberCellText}">
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                    <Setter Property="Foreground" Value="{Binding Net, Converter={StaticResource NetBrush}}" />
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="贡献者"
+                                                            Binding="{Binding AuthorCount, StringFormat={}{0:N0}}"
+                                                            Width="76"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTemplateColumn Header="状态" Width="92">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Status}"
+                                                               FontSize="11"
+                                                               FontWeight="SemiBold"
+                                                               VerticalAlignment="Center"
+                                                               ToolTip="{Binding ErrorToolTip}">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding CommitCount}" Value="0">
+                                                                        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <Grid Grid.Row="2" Margin="0,12,0,6">
+                                    <TextBlock Text="项目内人员明细" FontSize="12" FontWeight="SemiBold" />
+                                    <TextBlock Text="按项目分组"
+                                               FontSize="10.5"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+
+                                <DataGrid Grid.Row="3" ItemsSource="{Binding ProjectAuthorView}">
+                                    <DataGrid.GroupStyle>
+                                        <GroupStyle>
+                                            <GroupStyle.ContainerStyle>
+                                                <Style TargetType="{x:Type GroupItem}">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                                <StackPanel>
+                                                                    <Border Background="#F8FAFC"
+                                                                            BorderBrush="#EAECF0"
+                                                                            BorderThickness="0,0,0,1"
+                                                                            Padding="14,8">
+                                                                        <StackPanel Orientation="Horizontal">
+                                                                            <TextBlock Text="{Binding Name}"
+                                                                                       FontSize="12"
+                                                                                       FontWeight="SemiBold"
+                                                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                                                            <Border Background="#EAF2FF" CornerRadius="8" Padding="7,2" Margin="8,0,0,0">
+                                                                                <TextBlock Text="{Binding ItemCount, StringFormat={}{0} 位}"
+                                                                                           FontSize="10"
+                                                                                           Foreground="#175CD3" />
+                                                                            </Border>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                    <ItemsPresenter />
+                                                                </StackPanel>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </GroupStyle.ContainerStyle>
+                                        </GroupStyle>
+                                    </DataGrid.GroupStyle>
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="贡献者" Width="2.1*" SortMemberPath="DisplayName">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Border Width="28" Height="28" CornerRadius="14" Background="#EAF2FF">
+                                                            <TextBlock Text="{Binding Initial}"
+                                                                       Foreground="#2563EB"
+                                                                       FontWeight="Bold"
+                                                                       FontSize="12"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Margin="9,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding DisplayName}"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="12.5"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       ToolTip="{Binding DisplayName}" />
+                                                            <TextBlock Text="{Binding EmailDisplay}"
+                                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                                       FontSize="10"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       ToolTip="{Binding EmailDisplay}" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="提交次数"
+                                                            Binding="{Binding Commits, StringFormat={}{0:N0}}"
+                                                            Width="90"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="新增行数"
+                                                            Binding="{Binding Additions, StringFormat={}{0:N0}}"
+                                                            Width="100"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="删除行数"
+                                                            Binding="{Binding Deletions, StringFormat={}{0:N0}}"
+                                                            Width="100"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="净变化"
+                                                            Binding="{Binding Net, Converter={StaticResource SignedNumber}}"
+                                                            Width="100"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource NumberCellText}">
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                    <Setter Property="Foreground" Value="{Binding Net, Converter={StaticResource NetBrush}}" />
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="变更文件"
+                                                            Binding="{Binding ChangedFiles, StringFormat={}{0:N0}}"
+                                                            Width="90"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem Header="提交详情">
+                            <Grid Background="White">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="210" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Border Grid.Row="0"
+                                        Style="{StaticResource CardStyle}"
+                                        Padding="14,10">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Height="34">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="贡献者"
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           VerticalAlignment="Center" />
+                                                <ComboBox Width="190"
+                                                          Height="32"
+                                                          Margin="8,0,0,0"
+                                                          ItemsSource="{Binding AuthorRows}"
+                                                          DisplayMemberPath="DisplayName"
+                                                          SelectedItem="{Binding SelectedDetailAuthor, Mode=TwoWay}" />
+                                                <StackPanel Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="提交" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding SelectedDetailCommitCount, StringFormat={}{0:N0}}"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               Margin="4,0,12,0"
+                                                               VerticalAlignment="Center" />
+                                                    <TextBlock Text="新增" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding SelectedDetailAdditions, StringFormat={}{0:N0}}"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource SuccessBrush}"
+                                                               Margin="4,0,12,0"
+                                                               VerticalAlignment="Center" />
+                                                    <TextBlock Text="删除" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding SelectedDetailDeletions, StringFormat={}{0:N0}}"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource DangerBrush}"
+                                                               Margin="4,0,12,0"
+                                                               VerticalAlignment="Center" />
+                                                    <TextBlock Text="净变化" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding SelectedDetailNet, Converter={StaticResource SignedNumber}}"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{Binding SelectedDetailNet, Converter={StaticResource NetBrush}}"
+                                                               Margin="4,0,0,0"
+                                                               VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Center">
+                                                <Border Width="8" Height="8" CornerRadius="2" Background="{StaticResource SuccessBrush}" VerticalAlignment="Center" />
+                                                <TextBlock Text="新增" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="5,0,12,0" VerticalAlignment="Center" />
+                                                <Border Width="8" Height="8" CornerRadius="2" Background="{StaticResource DangerBrush}" VerticalAlignment="Center" />
+                                                <TextBlock Text="删除" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="5,0,14,0" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding CommitChartHint}"
+                                                           FontSize="10.5"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Grid Grid.Row="1" Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="54" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Grid Grid.Column="0" Height="108" VerticalAlignment="Top" Margin="0,0,8,0">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*" />
+                                                    <RowDefinition Height="*" />
+                                                    <RowDefinition Height="*" />
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Grid.Row="0"
+                                                           Text="{Binding CommitChartMaxText}"
+                                                           FontSize="9.5"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           HorizontalAlignment="Right"
+                                                           VerticalAlignment="Top" />
+                                                <TextBlock Grid.Row="1"
+                                                           Text="{Binding CommitChartMidText}"
+                                                           FontSize="9.5"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           HorizontalAlignment="Right"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Grid.Row="2"
+                                                           Text="0"
+                                                           FontSize="9.5"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           HorizontalAlignment="Right"
+                                                           VerticalAlignment="Bottom" />
+                                            </Grid>
+
+                                            <Grid Grid.Column="1">
+                                                <Grid Height="108" VerticalAlignment="Top">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="*" />
+                                                        <RowDefinition Height="*" />
+                                                        <RowDefinition Height="*" />
+                                                    </Grid.RowDefinitions>
+                                                    <Border Grid.Row="0" BorderBrush="#EAECF0" BorderThickness="0,1,0,0" VerticalAlignment="Top" />
+                                                    <Border Grid.Row="1" BorderBrush="#F2F4F7" BorderThickness="0,1,0,0" VerticalAlignment="Top" />
+                                                    <Border Grid.Row="2" BorderBrush="#EAECF0" BorderThickness="0,1,0,0" VerticalAlignment="Bottom" />
+                                                </Grid>
+                                                <ScrollViewer Height="148"
+                                                              HorizontalScrollBarVisibility="Auto"
+                                                              VerticalScrollBarVisibility="Disabled"
+                                                              PanningMode="HorizontalOnly">
+                                                    <ItemsControl ItemsSource="{Binding CommitChartRows}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <StackPanel Orientation="Horizontal" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid Width="42"
+                                                                      Height="130"
+                                                                      Background="Transparent"
+                                                                      ToolTip="{Binding ToolTipText}">
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="108" />
+                                                                        <RowDefinition Height="22" />
+                                                                    </Grid.RowDefinitions>
+                                                                    <StackPanel Grid.Row="0"
+                                                                                Orientation="Horizontal"
+                                                                                HorizontalAlignment="Center"
+                                                                                VerticalAlignment="Bottom">
+                                                                        <Rectangle Width="10"
+                                                                                   Height="{Binding AddBarHeight}"
+                                                                                   Fill="{StaticResource SuccessBrush}"
+                                                                                   RadiusX="2"
+                                                                                   RadiusY="2"
+                                                                                   VerticalAlignment="Bottom"
+                                                                                   Margin="0,0,2,0" />
+                                                                        <Rectangle Width="10"
+                                                                                   Height="{Binding DeleteBarHeight}"
+                                                                                   Fill="{StaticResource DangerBrush}"
+                                                                                   RadiusX="2"
+                                                                                   RadiusY="2"
+                                                                                   VerticalAlignment="Bottom" />
+                                                                    </StackPanel>
+                                                                    <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top">
+                                                                        <TextBlock Text="{Binding AxisDateText}"
+                                                                                   FontSize="8.5"
+                                                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                                                   HorizontalAlignment="Center" />
+                                                                        <TextBlock Text="{Binding AxisTimeText}"
+                                                                                   FontSize="7.5"
+                                                                                   Foreground="#C0C6D1"
+                                                                                   HorizontalAlignment="Center"
+                                                                                   Margin="0,1,0,0" />
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Grid>
+
+                                        <Border Grid.Row="1"
+                                                Background="#F9FAFB"
+                                                BorderBrush="#EAECF0"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Visibility="{Binding HasNoSelectedCommitDetails, Converter={StaticResource BoolToVisibility}}">
+                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock Text="暂无提交可展示"
+                                                           FontSize="13"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center" />
+                                                <TextBlock Text="选择有提交记录的贡献者后，这里会显示每次提交的新增与删除行数。"
+                                                           FontSize="10.5"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           Margin="0,5,0,0"
+                                                           HorizontalAlignment="Center" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <Grid Grid.Row="1" Margin="0,10,0,4">
+                                    <TextBlock Text="提交明细" FontSize="12" FontWeight="SemiBold" />
+                                    <TextBlock Text="按提交时间倒序 · 悬停柱形可查看完整信息"
+                                               FontSize="10.5"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+
+                                <DataGrid Grid.Row="2"
+                                          ItemsSource="{Binding SelectedAuthorCommits}"
+                                          RowHeight="44"
+                                          ColumnHeaderHeight="36">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="提交时间"
+                                                            Binding="{Binding DateText}"
+                                                            Width="124">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource NumberCellText}">
+                                                    <Setter Property="TextAlignment" Value="Left" />
+                                                    <Setter Property="FontSize" Value="11" />
+                                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTemplateColumn Header="项目" Width="1.1*" SortMemberPath="ProjectName">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding ProjectName}"
+                                                               FontSize="11.5"
+                                                               VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip="{Binding ProjectPath}" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="提交信息" Width="2.4*" SortMemberPath="Subject">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Subject}"
+                                                                   FontSize="12"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   ToolTip="{Binding ToolTipText}" />
+                                                        <Border Background="#F2F4F7"
+                                                                CornerRadius="4"
+                                                                Padding="5,1"
+                                                                HorizontalAlignment="Left"
+                                                                Margin="0,2,0,0">
+                                                            <TextBlock Text="{Binding ShortHash}"
+                                                                       FontFamily="Consolas"
+                                                                       FontSize="9.5"
+                                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="新增"
+                                                            Binding="{Binding Additions, StringFormat={}{0:N0}}"
+                                                            Width="78"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="删除"
+                                                            Binding="{Binding Deletions, StringFormat={}{0:N0}}"
+                                                            Width="78"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="净变化"
+                                                            Binding="{Binding Net, Converter={StaticResource SignedNumber}}"
+                                                            Width="86"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource NumberCellText}">
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                    <Setter Property="Foreground" Value="{Binding Net, Converter={StaticResource NetBrush}}" />
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="文件"
+                                                            Binding="{Binding ChangedFiles, StringFormat={}{0:N0}}"
+                                                            Width="66"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="4" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="7" Height="7" Fill="{Binding StatusTone, Converter={StaticResource StatusBrush}}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding StatusText}"
+                               FontSize="11"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ProgressText}"
+                               FontSize="11"
+                               Foreground="{StaticResource AccentBrush}"
+                               Margin="0,0,12,0"
+                               Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                    <TextBlock Text="Git CLI · 本地统计" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

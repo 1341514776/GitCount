@@ -1,0 +1,90 @@
+# GitCount
+
+GitCount 是一个基于 .NET 10 / WPF 的 Windows 桌面工具，用来统计一个或多个 Git 仓库的提交数据。它通过本机 Git CLI 读取提交记录，不上传任何代码或统计数据。
+
+## 功能
+
+- 添加任意数量的 Git 仓库，左侧勾选后一起汇总统计。
+- 按人员查看提交次数、新增行数、删除行数、净变化和变更文件数。
+- “提交详情”页可选择任意贡献者，查看其每次提交的新增/删除行数柱状图和逐条提交明细。
+- “分项目统计”页分别查看每个项目的汇总数据，以及项目内每位贡献者的明细。
+- 支持全部时间、最近 7 / 30 / 90 天、今年和自定义日期范围。
+- 默认统计当前分支，也可以勾选“所有分支”。
+- 支持拖入仓库文件夹批量添加项目。
+- 支持统计过程中取消，以及将完整结果导出为 UTF-8 CSV。
+- 自动保存项目列表、勾选状态和最近一次筛选条件。
+
+## 运行
+
+如果目标电脑没有安装 .NET 10，直接复制并运行自包含版：
+
+```text
+dist\win-x64-self-contained\GitCount.exe
+```
+
+发布目录中有两个版本：
+
+- `dist\win-x64\GitCount.exe`：框架依赖版，约 360 KB，目标电脑必须安装 [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)。
+- `dist\win-x64-self-contained\GitCount.exe`：自包含单文件版，约 65 MB，已包含 .NET 运行时，目标电脑无需安装 .NET，推荐用于分发。
+
+两个版本都仍然需要：
+
+1. Windows 10/11 x64。
+2. [Git for Windows](https://git-scm.com/download/win)，并确保 `git` 命令在 PATH 中。
+
+## 使用
+
+1. 点击“添加项目”选择 Git 仓库根目录，或把仓库文件夹直接拖进窗口。
+2. 在左侧勾选需要参与汇总的项目。
+3. 选择时间范围和分支范围，点击“开始统计”。
+4. 在“人员汇总”查看跨项目的人员数据，在“分项目统计”查看单项目数据。
+5. 在“提交详情”选择贡献者，柱状图按时间展示每次提交的新增/删除行数，下方表格可查看提交时间、项目、Hash 和提交信息。
+6. 需要表格数据时点击“导出 CSV”，导出内容包含人员汇总、项目汇总、项目内人员明细和逐次提交明细。
+
+## 统计口径
+
+- 使用 `git log --no-merges --numstat` 读取数据，合并提交不计入，避免重复统计。
+- 新增/删除行数来自 Git 的 `numstat` 结果；二进制文件不产生行数，但会计入变更文件数。
+- 作者优先按邮箱分组；没有邮箱时按作者名分组。
+- 逐次提交明细保留提交 Hash、提交信息、时间、所属项目以及该次提交的新增/删除行数。
+- 默认只统计当前分支；勾选“所有分支”后使用 `git log --all`。
+- 日期按本机日期传给 Git 的 `--since` / `--until`，结束日期包含当天。
+
+## 数据位置
+
+项目配置和筛选条件保存在：
+
+```text
+%LOCALAPPDATA%\GitCount\state.json
+```
+
+程序不会修改被统计的仓库。
+
+## 构建与发布
+
+```powershell
+dotnet build
+powershell -ExecutionPolicy Bypass -File .\publish.ps1
+```
+
+框架依赖版（体积小，开发机已安装 .NET 时使用）：
+
+```text
+dist\win-x64\GitCount.exe
+```
+
+自包含版（无需目标电脑安装 .NET，推荐分发）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\publish-self-contained.ps1
+```
+
+输出：
+
+```text
+dist\win-x64-self-contained\GitCount.exe
+```
+
+首次进行自包含发布时，需要联网下载 .NET 10 x64 运行时包；下载后会缓存到本机 NuGet 缓存，后续可离线发布。
+
+仓库中的 `NuGet.config` 清空了外部包源，便于在无网络环境构建这个无第三方依赖的项目。
