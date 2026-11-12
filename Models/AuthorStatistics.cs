@@ -10,5 +10,6 @@ public sealed class AuthorStatistics
     public long Additions { get; set; }
     public long Deletions { get; set; }
     public int ChangedFiles { get; set; }
+    public int FilteredCommits { get; set; }
     public long Net => Additions - Deletions;
 }

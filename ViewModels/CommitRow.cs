@@ -17,11 +17,15 @@ public sealed class CommitRow
         AuthorName = commit.AuthorName;
         AuthorEmail = commit.AuthorEmail;
         CommittedAt = commit.CommittedAt?.ToLocalTime();
-        Additions = commit.Additions;
-        Deletions = commit.Deletions;
+        RawAdditions = commit.Additions;
+        RawDeletions = commit.Deletions;
+        CountedAdditions = commit.CountedAdditions;
+        CountedDeletions = commit.CountedDeletions;
         ChangedFiles = commit.ChangedFiles;
-        AddBarHeight = ScaleBar(commit.Additions, chartMaximum);
-        DeleteBarHeight = ScaleBar(commit.Deletions, chartMaximum);
+        IsLineCountFiltered = commit.IsLineCountFiltered;
+        FilterReason = commit.FilterReason;
+        AddBarHeight = ScaleBar(commit.CountedAdditions, chartMaximum);
+        DeleteBarHeight = ScaleBar(commit.CountedDeletions, chartMaximum);
     }
 
     public string Hash { get; }
@@ -32,10 +36,14 @@ public sealed class CommitRow
     public string AuthorName { get; }
     public string AuthorEmail { get; }
     public DateTimeOffset? CommittedAt { get; }
-    public long Additions { get; }
-    public long Deletions { get; }
+    public long RawAdditions { get; }
+    public long RawDeletions { get; }
+    public long CountedAdditions { get; }
+    public long CountedDeletions { get; }
     public int ChangedFiles { get; }
-    public long Net => Additions - Deletions;
+    public bool IsLineCountFiltered { get; }
+    public string? FilterReason { get; }
+    public long Net => CountedAdditions - CountedDeletions;
     public double AddBarHeight { get; }
     public double DeleteBarHeight { get; }
 
@@ -44,11 +52,33 @@ public sealed class CommitRow
     public string AxisTimeText => CommittedAt?.ToString("HH:mm", CultureInfo.CurrentCulture) ?? string.Empty;
     public string AuthorDisplayName => string.IsNullOrWhiteSpace(AuthorName) ? AuthorEmail : AuthorName;
 
-    public string ToolTipText =>
-        $"{DateText}{Environment.NewLine}" +
-        $"{ProjectName}{Environment.NewLine}" +
-        $"{ShortHash} {Subject}{Environment.NewLine}" +
-        $"新增 +{Additions:N0} · 删除 -{Deletions:N0} · 净变化 {Net:+#,##0;-#,##0;0}";
+    public string FilterStatusText => IsLineCountFiltered ? "已过滤" : string.Empty;
+
+    public string ToolTipText
+    {
+        get
+        {
+            var lines = new List<string>
+            {
+                DateText,
+                ProjectName,
+                $"{ShortHash} {Subject}"
+            };
+
+            if (IsLineCountFiltered)
+            {
+                lines.Add("本次提交已命中大提交过滤，新增/删除行数不计入汇总。");
+                lines.Add($"原始：新增 +{RawAdditions:N0} · 删除 -{RawDeletions:N0}");
+                lines.Add($"原因：{FilterReason}");
+            }
+            else
+            {
+                lines.Add($"新增 +{RawAdditions:N0} · 删除 -{RawDeletions:N0} · 净变化 {Net:+#,##0;-#,##0;0}");
+            }
+
+            return string.Join(Environment.NewLine, lines);
+        }
+    }
 
     private static double ScaleBar(long value, double chartMaximum)
     {

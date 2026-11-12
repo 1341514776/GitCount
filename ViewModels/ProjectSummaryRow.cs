@@ -5,6 +5,7 @@ public sealed class ProjectSummaryRow
     public required string Name { get; init; }
     public required string Path { get; init; }
     public required int CommitCount { get; init; }
+    public required int FilteredCommitCount { get; init; }
     public required long Additions { get; init; }
     public required long Deletions { get; init; }
     public required int AuthorCount { get; init; }

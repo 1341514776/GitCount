@@ -113,7 +113,7 @@ public sealed class GitService
         return new ProjectStatistics
         {
             Project = project,
-            Authors = ParseNumstat(result.StandardOutput, project)
+            Authors = ParseNumstat(result.StandardOutput, project, query.LargeCommitFilter)
         };
     }
 
@@ -131,7 +131,10 @@ public sealed class GitService
             || error.Contains("ambiguous argument 'HEAD'", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static List<AuthorStatistics> ParseNumstat(string output, ProjectConfig project)
+    private static List<AuthorStatistics> ParseNumstat(
+        string output,
+        ProjectConfig project,
+        CommitFilterOptions filter)
     {
         var authors = new Dictionary<string, AuthorStatistics>(StringComparer.Ordinal);
 
@@ -212,14 +215,25 @@ public sealed class GitService
                 if (long.TryParse(columns[0], NumberStyles.Integer, InvariantCulture, out var additions))
                 {
                     commit.Additions += additions;
-                    author.Additions += additions;
                 }
 
                 if (long.TryParse(columns[1], NumberStyles.Integer, InvariantCulture, out var deletions))
                 {
                     commit.Deletions += deletions;
-                    author.Deletions += deletions;
                 }
+            }
+
+            var filterReason = filter.GetFilterReason(commit.ChangedFiles, commit.Additions);
+            if (filterReason is not null)
+            {
+                commit.IsLineCountFiltered = true;
+                commit.FilterReason = filterReason;
+                author.FilteredCommits++;
+            }
+            else
+            {
+                author.Additions += commit.Additions;
+                author.Deletions += commit.Deletions;
             }
         }
 

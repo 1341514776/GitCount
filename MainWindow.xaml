@@ -262,48 +262,109 @@
 
             <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="18,14" Margin="0,16,0,0">
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="时间范围" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                        <ComboBox Width="132"
-                                  Margin="10,0,0,0"
-                                  ItemsSource="{Binding DateRanges}"
-                                  DisplayMemberPath="DisplayName"
-                                  SelectedItem="{Binding SelectedDateRange, Mode=TwoWay}"
-                                  IsEnabled="{Binding IsNotBusy}" />
-                        <StackPanel Orientation="Horizontal"
-                                    Margin="12,0,0,0"
-                                    VerticalAlignment="Center"
-                                    Visibility="{Binding IsCustomRange, Converter={StaticResource BoolToVisibility}}">
-                            <DatePicker Width="128"
-                                        SelectedDate="{Binding StartDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                        IsEnabled="{Binding IsNotBusy}" />
-                            <TextBlock Text="至" Foreground="{StaticResource TextMutedBrush}" Margin="8,0" VerticalAlignment="Center" />
-                            <DatePicker Width="128"
-                                        SelectedDate="{Binding EndDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                        IsEnabled="{Binding IsNotBusy}" />
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="时间范围" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <ComboBox Width="132"
+                                      Margin="10,0,0,0"
+                                      ItemsSource="{Binding DateRanges}"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectedItem="{Binding SelectedDateRange, Mode=TwoWay}"
+                                      IsEnabled="{Binding IsNotBusy}" />
+                            <StackPanel Orientation="Horizontal"
+                                        Margin="12,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding IsCustomRange, Converter={StaticResource BoolToVisibility}}">
+                                <DatePicker Width="128"
+                                            SelectedDate="{Binding StartDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            IsEnabled="{Binding IsNotBusy}" />
+                                <TextBlock Text="至" Foreground="{StaticResource TextMutedBrush}" Margin="8,0" VerticalAlignment="Center" />
+                                <DatePicker Width="128"
+                                            SelectedDate="{Binding EndDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            IsEnabled="{Binding IsNotBusy}" />
+                            </StackPanel>
+                            <CheckBox Content="所有分支"
+                                      IsChecked="{Binding IncludeAllBranches, Mode=TwoWay}"
+                                      IsEnabled="{Binding IsNotBusy}"
+                                      Margin="22,0,0,0"
+                                      VerticalAlignment="Center" />
                         </StackPanel>
-                        <CheckBox Content="所有分支"
-                                  IsChecked="{Binding IncludeAllBranches, Mode=TwoWay}"
-                                  IsEnabled="{Binding IsNotBusy}"
-                                  Margin="22,0,0,0"
-                                  VerticalAlignment="Center" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="取消"
-                                Style="{StaticResource SecondaryButton}"
-                                Margin="0,0,10,0"
-                                Click="CancelStatistics_Click"
-                                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
-                        <Button Content="开始统计"
-                                Style="{StaticResource PrimaryButton}"
-                                MinWidth="108"
-                                Click="StartStatistics_Click"
-                                IsEnabled="{Binding IsNotBusy}" />
-                    </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="取消"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Margin="0,0,10,0"
+                                    Click="CancelStatistics_Click"
+                                    Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Content="开始统计"
+                                    Style="{StaticResource PrimaryButton}"
+                                    MinWidth="108"
+                                    Click="StartStatistics_Click"
+                                    IsEnabled="{Binding IsNotBusy}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="1"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="0,1,0,0"
+                            Margin="0,12,0,0"
+                            Padding="0,10,0,0">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <CheckBox Content="过滤大提交"
+                                          IsChecked="{Binding LargeCommitFilterEnabled, Mode=TwoWay}"
+                                          IsEnabled="{Binding IsNotBusy}"
+                                          VerticalAlignment="Center" />
+                                <TextBlock Text="文件数 ≥"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="20,0,0,0"
+                                           VerticalAlignment="Center" />
+                                <TextBox Width="50"
+                                         Height="28"
+                                         Padding="6,1"
+                                         Margin="6,0,0,0"
+                                         VerticalContentAlignment="Center"
+                                         Text="{Binding LargeCommitFileThreshold, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                         IsEnabled="{Binding CanEditLargeCommitFilter}" />
+                                <TextBlock Text="个"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="5,0,0,0"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="或 单次新增行数 >"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="18,0,0,0"
+                                           VerticalAlignment="Center" />
+                                <TextBox Width="64"
+                                         Height="28"
+                                         Padding="6,1"
+                                         Margin="6,0,0,0"
+                                         VerticalContentAlignment="Center"
+                                         Text="{Binding LargeCommitAdditionThreshold, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                         IsEnabled="{Binding CanEditLargeCommitFilter}" />
+                                <TextBlock Text="行"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="5,0,0,0"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding LargeCommitFilterDescription}"
+                                       FontSize="10.5"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
 
@@ -480,6 +541,11 @@
                                                             Width="90"
                                                             HeaderStyle="{StaticResource RightColumnHeader}"
                                                             ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="过滤提交"
+                                                            Binding="{Binding FilteredCommits, StringFormat={}{0:N0}}"
+                                                            Width="82"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
                                         <DataGridTextColumn Header="新增行数"
                                                             Binding="{Binding Additions, StringFormat={}{0:N0}}"
                                                             Width="100"
@@ -581,6 +647,11 @@
                                         <DataGridTextColumn Header="提交"
                                                             Binding="{Binding CommitCount, StringFormat={}{0:N0}}"
                                                             Width="74"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="过滤"
+                                                            Binding="{Binding FilteredCommitCount, StringFormat={}{0:N0}}"
+                                                            Width="64"
                                                             HeaderStyle="{StaticResource RightColumnHeader}"
                                                             ElementStyle="{StaticResource NumberCellText}" />
                                         <DataGridTextColumn Header="新增"
@@ -714,6 +785,11 @@
                                                             Width="90"
                                                             HeaderStyle="{StaticResource RightColumnHeader}"
                                                             ElementStyle="{StaticResource NumberCellText}" />
+                                        <DataGridTextColumn Header="过滤提交"
+                                                            Binding="{Binding FilteredCommits, StringFormat={}{0:N0}}"
+                                                            Width="82"
+                                                            HeaderStyle="{StaticResource RightColumnHeader}"
+                                                            ElementStyle="{StaticResource NumberCellText}" />
                                         <DataGridTextColumn Header="新增行数"
                                                             Binding="{Binding Additions, StringFormat={}{0:N0}}"
                                                             Width="100"
@@ -782,6 +858,18 @@
                                                                FontWeight="SemiBold"
                                                                Margin="4,0,12,0"
                                                                VerticalAlignment="Center" />
+                                                    <Border Background="#FFFAEB"
+                                                            CornerRadius="4"
+                                                            Padding="6,1"
+                                                            Margin="0,0,12,0"
+                                                            VerticalAlignment="Center"
+                                                            ToolTip="命中大提交过滤的提交仍计入提交次数，但不计入新增/删除行数。"
+                                                            Visibility="{Binding HasSelectedDetailFilteredCommits, Converter={StaticResource BoolToVisibility}}">
+                                                        <TextBlock Text="{Binding SelectedDetailFilteredCommitCount, StringFormat='已过滤 {0:N0} 次'}"
+                                                                   FontSize="10"
+                                                                   Foreground="#B54708"
+                                                                   VerticalAlignment="Center" />
+                                                    </Border>
                                                     <TextBlock Text="新增" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
                                                     <TextBlock Text="{Binding SelectedDetailAdditions, StringFormat={}{0:N0}}"
                                                                FontSize="12"
@@ -900,6 +988,19 @@
                                                                                    RadiusY="2"
                                                                                    VerticalAlignment="Bottom" />
                                                                     </StackPanel>
+                                                                    <Border HorizontalAlignment="Center"
+                                                                            VerticalAlignment="Top"
+                                                                            Background="#FFFAEB"
+                                                                            CornerRadius="3"
+                                                                            Padding="3,0"
+                                                                            Margin="0,1,0,0"
+                                                                            ToolTip="{Binding FilterReason}"
+                                                                            Visibility="{Binding IsLineCountFiltered, Converter={StaticResource BoolToVisibility}}">
+                                                                        <TextBlock Text="滤"
+                                                                                   FontSize="8"
+                                                                                   FontWeight="SemiBold"
+                                                                                   Foreground="#B54708" />
+                                                                    </Border>
                                                                     <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top">
                                                                         <TextBlock Text="{Binding AxisDateText}"
                                                                                    FontSize="8.5"
@@ -953,6 +1054,15 @@
                                           ItemsSource="{Binding SelectedAuthorCommits}"
                                           RowHeight="44"
                                           ColumnHeaderHeight="36">
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsLineCountFiltered}" Value="True">
+                                                    <Setter Property="Background" Value="#FFFCF5" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.RowStyle>
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="提交时间"
                                                             Binding="{Binding DateText}"
@@ -984,28 +1094,39 @@
                                                                    FontSize="12"
                                                                    TextTrimming="CharacterEllipsis"
                                                                    ToolTip="{Binding ToolTipText}" />
-                                                        <Border Background="#F2F4F7"
-                                                                CornerRadius="4"
-                                                                Padding="5,1"
-                                                                HorizontalAlignment="Left"
-                                                                Margin="0,2,0,0">
-                                                            <TextBlock Text="{Binding ShortHash}"
-                                                                       FontFamily="Consolas"
-                                                                       FontSize="9.5"
-                                                                       Foreground="{StaticResource TextSecondaryBrush}" />
-                                                        </Border>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                            <Border Background="#F2F4F7"
+                                                                    CornerRadius="4"
+                                                                    Padding="5,1"
+                                                                    Margin="0,0,6,0">
+                                                                <TextBlock Text="{Binding ShortHash}"
+                                                                           FontFamily="Consolas"
+                                                                           FontSize="9.5"
+                                                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                                                            </Border>
+                                                            <Border Background="#FFFAEB"
+                                                                    CornerRadius="4"
+                                                                    Padding="5,1"
+                                                                    ToolTip="{Binding FilterReason}"
+                                                                    Visibility="{Binding IsLineCountFiltered, Converter={StaticResource BoolToVisibility}}">
+                                                                <TextBlock Text="{Binding FilterStatusText}"
+                                                                           FontSize="9.5"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="#B54708" />
+                                                            </Border>
+                                                        </StackPanel>
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Header="新增"
-                                                            Binding="{Binding Additions, StringFormat={}{0:N0}}"
-                                                            Width="78"
+                                        <DataGridTextColumn Header="计入新增"
+                                                            Binding="{Binding CountedAdditions, StringFormat={}{0:N0}}"
+                                                            Width="86"
                                                             HeaderStyle="{StaticResource RightColumnHeader}"
                                                             ElementStyle="{StaticResource NumberCellText}" />
-                                        <DataGridTextColumn Header="删除"
-                                                            Binding="{Binding Deletions, StringFormat={}{0:N0}}"
-                                                            Width="78"
+                                        <DataGridTextColumn Header="计入删除"
+                                                            Binding="{Binding CountedDeletions, StringFormat={}{0:N0}}"
+                                                            Width="86"
                                                             HeaderStyle="{StaticResource RightColumnHeader}"
                                                             ElementStyle="{StaticResource NumberCellText}" />
                                         <DataGridTextColumn Header="净变化"

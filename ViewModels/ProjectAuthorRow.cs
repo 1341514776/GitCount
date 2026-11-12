@@ -8,6 +8,7 @@ public sealed class ProjectAuthorRow
     public required string Name { get; init; }
     public required string Email { get; init; }
     public int Commits { get; init; }
+    public int FilteredCommits { get; init; }
     public long Additions { get; init; }
     public long Deletions { get; init; }
     public int ChangedFiles { get; init; }

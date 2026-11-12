@@ -22,6 +22,9 @@ public sealed partial class MainViewModel : ObservableObject
     private DateTime? _startDate = DateTime.Today.AddDays(-29);
     private DateTime? _endDate = DateTime.Today;
     private bool _includeAllBranches;
+    private bool _largeCommitFilterEnabled = true;
+    private int _largeCommitFileThreshold = 20;
+    private int _largeCommitAdditionThreshold = 500;
     private string _statusText = "准备就绪";
     private StatusTone _statusTone = StatusTone.Neutral;
     private string _progressText = string.Empty;
@@ -33,6 +36,7 @@ public sealed partial class MainViewModel : ObservableObject
     private int _totalCommits;
     private long _totalAdditions;
     private long _totalDeletions;
+    private int _totalFilteredCommits;
     private IReadOnlyList<AuthorRow> _authorRows = Array.Empty<AuthorRow>();
     private IReadOnlyList<ProjectSummaryRow> _projectSummaryRows = Array.Empty<ProjectSummaryRow>();
     private IReadOnlyList<ProjectAuthorRow> _projectAuthorRows = Array.Empty<ProjectAuthorRow>();
@@ -109,8 +113,58 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    public bool LargeCommitFilterEnabled
+    {
+        get => _largeCommitFilterEnabled;
+        set
+        {
+            if (SetProperty(ref _largeCommitFilterEnabled, value))
+            {
+                OnPropertyChanged(nameof(LargeCommitFilterDescription));
+                OnPropertyChanged(nameof(CanEditLargeCommitFilter));
+                UpdateRangeCaption();
+                MarkResultStale();
+            }
+        }
+    }
+
+    public int LargeCommitFileThreshold
+    {
+        get => _largeCommitFileThreshold;
+        set
+        {
+            var normalized = Math.Clamp(value, 1, 100_000);
+            if (SetProperty(ref _largeCommitFileThreshold, normalized))
+            {
+                OnPropertyChanged(nameof(LargeCommitFilterDescription));
+                UpdateRangeCaption();
+                MarkResultStale();
+            }
+        }
+    }
+
+    public int LargeCommitAdditionThreshold
+    {
+        get => _largeCommitAdditionThreshold;
+        set
+        {
+            var normalized = Math.Clamp(value, 0, 100_000_000);
+            if (SetProperty(ref _largeCommitAdditionThreshold, normalized))
+            {
+                OnPropertyChanged(nameof(LargeCommitFilterDescription));
+                UpdateRangeCaption();
+                MarkResultStale();
+            }
+        }
+    }
+
+    public string LargeCommitFilterDescription => _largeCommitFilterEnabled
+        ? $"命中后仍计入提交次数，但新增和删除行数不计入统计（文件 ≥ {_largeCommitFileThreshold:N0}，或新增 > {_largeCommitAdditionThreshold:N0}）。"
+        : "当前未启用大提交过滤。";
+
     public bool IsCustomRange => SelectedDateRange.Key == DateRangePresets.Custom;
     public bool IsNotBusy => !_isBusy;
+    public bool CanEditLargeCommitFilter => _largeCommitFilterEnabled && !_isBusy;
 
     public bool IsBusy
     {
@@ -120,6 +174,7 @@ public sealed partial class MainViewModel : ObservableObject
             if (SetProperty(ref _isBusy, value))
             {
                 OnPropertyChanged(nameof(IsNotBusy));
+                OnPropertyChanged(nameof(CanEditLargeCommitFilter));
             }
         }
     }
@@ -247,13 +302,26 @@ public sealed partial class MainViewModel : ObservableObject
         private set => SetProperty(ref _rangeCaption, value);
     }
 
-    public string ResultScopeText => HasCalculated
-        ? $"{_lastProjectStats.Count} 个项目 · {_authorRows.Count} 位贡献者"
-        : "尚未统计";
+    public string ResultScopeText
+    {
+        get
+        {
+            if (!HasCalculated)
+            {
+                return "尚未统计";
+            }
+
+            var text = $"{_lastProjectStats.Count} 个项目 · {_authorRows.Count} 位贡献者";
+            return _totalFilteredCommits > 0
+                ? $"{text} · 已过滤 {_totalFilteredCommits:N0} 次大提交"
+                : text;
+        }
+    }
 
     public int TotalCommits => _totalCommits;
     public long TotalAdditions => _totalAdditions;
     public long TotalDeletions => _totalDeletions;
+    public int TotalFilteredCommits => _totalFilteredCommits;
     public long TotalNet => _totalAdditions - _totalDeletions;
     public string ContributorHint => $"{_authorRows.Count} 位贡献者";
 
@@ -320,6 +388,9 @@ public sealed partial class MainViewModel : ObservableObject
         StartDate = state.CustomStartDate ?? DateTime.Today.AddDays(-29);
         EndDate = state.CustomEndDate ?? DateTime.Today;
         IncludeAllBranches = state.IncludeAllBranches;
+        LargeCommitFilterEnabled = state.LargeCommitFilterEnabled;
+        LargeCommitFileThreshold = state.LargeCommitFileThreshold;
+        LargeCommitAdditionThreshold = state.LargeCommitAdditionThreshold;
         RefreshProjectStateProperties();
         UpdateRangeCaption();
 
@@ -459,7 +530,10 @@ public sealed partial class MainViewModel : ObservableObject
                 DateRangeKey = SelectedDateRange.Key,
                 CustomStartDate = StartDate,
                 CustomEndDate = EndDate,
-                IncludeAllBranches = IncludeAllBranches
+                IncludeAllBranches = IncludeAllBranches,
+                LargeCommitFilterEnabled = LargeCommitFilterEnabled,
+                LargeCommitFileThreshold = LargeCommitFileThreshold,
+                LargeCommitAdditionThreshold = LargeCommitAdditionThreshold
             };
             _projectStore.Save(state);
         }
