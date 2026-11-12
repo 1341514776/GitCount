@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using GitCount.Models;
 using GitCount.ViewModels;
 using Microsoft.Win32;
 
@@ -7,6 +8,8 @@ namespace GitCount;
 
 public partial class MainWindow : Window
 {
+    private CommitDetailsWindow? _commitDetailsWindow;
+
     private MainViewModel ViewModel => (MainViewModel)DataContext;
 
     public MainWindow()
@@ -22,7 +25,7 @@ public partial class MainWindow : Window
 
     private async void AddProject_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.IsBusy)
+        if (ViewModel.IsBusy || ViewModel.IsGitLabMode)
         {
             return;
         }
@@ -41,6 +44,37 @@ public partial class MainWindow : Window
         await AddProjectPathsAsync(dialog.FolderNames);
     }
 
+    private void ModeLocal_Click(object sender, RoutedEventArgs e) =>
+        ViewModel.SetMode(StatisticsMode.Local);
+
+    private void ModeGitLab_Click(object sender, RoutedEventArgs e) =>
+        ViewModel.SetMode(StatisticsMode.GitLab);
+
+    private void ManageGitLabProjects_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.IsBusy)
+        {
+            return;
+        }
+
+        var dialog = new GitLabProjectsWindow(
+            ViewModel.GitLabBaseUrl,
+            ViewModel.GetGitLabToken(),
+            ViewModel.GetGitLabProjectIds())
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            ViewModel.ApplyGitLabConfiguration(
+                dialog.BaseUrl,
+                dialog.Token,
+                dialog.ConnectedUserName,
+                dialog.SelectedProjects);
+        }
+    }
+
     private void RemoveProject_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement { Tag: ProjectItemViewModel project })
@@ -48,9 +82,12 @@ public partial class MainWindow : Window
             return;
         }
 
+        var detail = project.IsGitLab
+            ? "只会从统计配置中移除，不会修改 GitLab 服务器。"
+            : "只会移除统计配置，不会删除本地文件。";
         var result = MessageBox.Show(
             this,
-            $"确定从列表中移除「{project.Name}」吗？\n\n只会移除统计配置，不会删除本地文件。",
+            $"确定从列表中移除「{project.Name}」吗？\n\n{detail}",
             "移除项目",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
@@ -73,6 +110,33 @@ public partial class MainWindow : Window
     private void CancelStatistics_Click(object sender, RoutedEventArgs e)
     {
         ViewModel.CancelCalculation();
+    }
+
+    private void OpenCommitDetailsWindow_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ViewModel.HasSelectedCommitDetails)
+        {
+            MessageBox.Show(
+                this,
+                "请先完成统计，并选择有提交记录的贡献者。",
+                "提交明细",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        if (_commitDetailsWindow is { IsVisible: true })
+        {
+            _commitDetailsWindow.Activate();
+            return;
+        }
+
+        _commitDetailsWindow = new CommitDetailsWindow(ViewModel)
+        {
+            Owner = this
+        };
+        _commitDetailsWindow.Closed += (_, _) => _commitDetailsWindow = null;
+        _commitDetailsWindow.Show();
     }
 
     private async void ExportCsv_Click(object sender, RoutedEventArgs e)
@@ -109,7 +173,7 @@ public partial class MainWindow : Window
 
     private void Window_DragOver(object sender, DragEventArgs e)
     {
-        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop)
+        e.Effects = !ViewModel.IsGitLabMode && e.Data.GetDataPresent(DataFormats.FileDrop)
             ? DragDropEffects.Copy
             : DragDropEffects.None;
         e.Handled = true;
@@ -117,7 +181,9 @@ public partial class MainWindow : Window
 
     private async void Window_Drop(object sender, DragEventArgs e)
     {
-        if (ViewModel.IsBusy || e.Data.GetData(DataFormats.FileDrop) is not string[] paths)
+        if (ViewModel.IsBusy
+            || ViewModel.IsGitLabMode
+            || e.Data.GetData(DataFormats.FileDrop) is not string[] paths)
         {
             return;
         }
@@ -157,5 +223,6 @@ public partial class MainWindow : Window
     {
         ViewModel.CancelCalculation();
         ViewModel.SaveState();
+        _commitDetailsWindow?.Close();
     }
 }

@@ -14,6 +14,11 @@ public sealed partial class MainViewModel
         get => _selectedDetailAuthor;
         set
         {
+            if (value is null && _authorRows.Count > 0)
+            {
+                value = _authorRows[0];
+            }
+
             if (SetProperty(ref _selectedDetailAuthor, value))
             {
                 UpdateSelectedCommitDetails();
@@ -80,6 +85,20 @@ public sealed partial class MainViewModel
         _commitChartMaxValue = chartMaximum;
         CommitChartRows = rows.AsEnumerable().Reverse().ToArray();
         CompleteCommitDetailUpdate(rows);
+    }
+
+    private void EnsureSelectedDetailAuthor()
+    {
+        if (_authorRows.Count == 0)
+        {
+            SelectedDetailAuthor = null;
+            return;
+        }
+
+        if (_selectedDetailAuthor is null || !_authorRows.Contains(_selectedDetailAuthor))
+        {
+            SelectedDetailAuthor = _authorRows[0];
+        }
     }
 
     private void CompleteCommitDetailUpdate(IReadOnlyList<CommitRow> rows)

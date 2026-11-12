@@ -32,6 +32,40 @@
                BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
             <Setter Property="HorizontalContentAlignment" Value="Right" />
         </Style>
+        <Style x:Key="SidebarModeButton" TargetType="Button">
+            <Setter Property="Height" Value="31" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#8FA0BA" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ModeBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="7"
+                                Padding="4,0">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ModeBorder" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ModeBorder" Property="Opacity" Value="0.72" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -49,6 +83,7 @@
             </Border.Background>
             <Grid Margin="22,24,22,20">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -83,21 +118,75 @@
                     </StackPanel>
                 </StackPanel>
 
-                <Button Grid.Row="1"
+                <Border Grid.Row="1"
+                        Background="#0F192A"
+                        BorderBrush="#1E2C43"
+                        BorderThickness="1"
+                        CornerRadius="9"
+                        Padding="3"
+                        Margin="0,20,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Content="本地模式"
+                                Click="ModeLocal_Click"
+                                IsEnabled="{Binding IsNotBusy}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource SidebarModeButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsLocalMode}" Value="True">
+                                            <Setter Property="Background" Value="#2563EB" />
+                                            <Setter Property="Foreground" Value="White" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Grid.Column="1"
+                                Content="线上模式"
+                                Click="ModeGitLab_Click"
+                                IsEnabled="{Binding IsNotBusy}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource SidebarModeButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsGitLabMode}" Value="True">
+                                            <Setter Property="Background" Value="#2563EB" />
+                                            <Setter Property="Foreground" Value="White" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Button Grid.Row="2"
                         Style="{StaticResource PrimaryButton}"
                         Height="36"
-                        Margin="0,22,0,0"
+                        Margin="0,12,0,0"
                         Click="AddProject_Click"
-                        IsEnabled="{Binding IsNotBusy}">
+                        IsEnabled="{Binding IsNotBusy}"
+                        Visibility="{Binding IsLocalMode, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="+" FontSize="18" FontWeight="Normal" VerticalAlignment="Center" Margin="0,-2,7,0" />
                         <TextBlock Text="添加项目" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
+                <Button Grid.Row="2"
+                        Style="{StaticResource PrimaryButton}"
+                        Height="36"
+                        Margin="0,12,0,0"
+                        Content="GitLab 项目管理"
+                        Click="ManageGitLabProjects_Click"
+                        IsEnabled="{Binding IsNotBusy}"
+                        Visibility="{Binding IsGitLabMode, Converter={StaticResource BoolToVisibility}}" />
 
-                <Grid Grid.Row="2" Margin="0,22,0,10">
+                <Grid Grid.Row="3" Margin="0,20,0,10">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="项目列表" FontSize="12" FontWeight="SemiBold" Foreground="#E4E7EC" />
+                        <TextBlock Text="{Binding ProjectListTitle}" FontSize="12" FontWeight="SemiBold" Foreground="#E4E7EC" />
                         <Border Background="#18243A" CornerRadius="8" Padding="7,2" Margin="8,0,0,0">
                             <TextBlock Text="{Binding ProjectCountText}" FontSize="10" Foreground="#AFC0DB" />
                         </Border>
@@ -108,7 +197,7 @@
                     </StackPanel>
                 </Grid>
 
-                <Grid Grid.Row="3">
+                <Grid Grid.Row="4">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <ItemsControl ItemsSource="{Binding Projects}">
                             <ItemsControl.ItemTemplate>
@@ -192,7 +281,7 @@
                                        FontWeight="SemiBold"
                                        HorizontalAlignment="Center"
                                        Margin="0,12,0,0" />
-                            <TextBlock Text="点击上方按钮，或把 Git 仓库文件夹拖入窗口"
+                            <TextBlock Text="{Binding EmptyProjectListHint}"
                                        Foreground="#7D8AA1"
                                        FontSize="11"
                                        TextWrapping="Wrap"
@@ -202,7 +291,7 @@
                     </Border>
                 </Grid>
 
-                <StackPanel Grid.Row="4" Margin="0,16,0,0">
+                <StackPanel Grid.Row="5" Margin="0,16,0,0">
                     <Border Height="1" Background="#1E2C43" Margin="0,0,0,14" />
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -214,13 +303,13 @@
                                        TextTrimming="CharacterEllipsis"
                                        ToolTip="{Binding GitStatusTooltip}" />
                         </StackPanel>
-                        <TextBlock Text="本地统计"
+                        <TextBlock Text="{Binding ModeFooterText}"
                                    Foreground="#56657D"
                                    FontSize="10"
                                    HorizontalAlignment="Right"
                                    VerticalAlignment="Center" />
                     </Grid>
-                    <TextBlock Text="项目配置保存在本机"
+                    <TextBlock Text="{Binding ModeStorageText}"
                                Foreground="#56657D"
                                FontSize="10"
                                Margin="0,7,0,0" />
@@ -243,7 +332,7 @@
                                FontSize="26"
                                FontWeight="Bold"
                                Foreground="{StaticResource TextPrimaryBrush}" />
-                    <TextBlock Text="跨项目汇总每个人的提交、新增与删除行数"
+                    <TextBlock Text="{Binding HeaderDescription}"
                                FontSize="12"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                Margin="0,5,0,0" />
@@ -255,7 +344,7 @@
                         Padding="11,6">
                     <StackPanel Orientation="Horizontal">
                         <Ellipse Width="6" Height="6" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center" />
-                        <TextBlock Text="本地运行 · 数据不上传" FontSize="11" Foreground="#175CD3" Margin="7,0,0,0" />
+                        <TextBlock Text="{Binding ModeBadgeText}" FontSize="11" Foreground="#175CD3" Margin="7,0,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -1043,11 +1132,23 @@
 
                                 <Grid Grid.Row="1" Margin="0,10,0,4">
                                     <TextBlock Text="提交明细" FontSize="12" FontWeight="SemiBold" />
-                                    <TextBlock Text="按提交时间倒序 · 悬停柱形可查看完整信息"
-                                               FontSize="10.5"
-                                               Foreground="{StaticResource TextMutedBrush}"
-                                               HorizontalAlignment="Right"
-                                               VerticalAlignment="Center" />
+                                    <StackPanel Orientation="Horizontal"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="按提交时间倒序 · 悬停柱形可查看完整信息"
+                                                   FontSize="10.5"
+                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0" />
+                                        <Button Content="全屏查看"
+                                                Style="{StaticResource SecondaryButton}"
+                                                Height="28"
+                                                Padding="12,0"
+                                                FontSize="10.5"
+                                                Click="OpenCommitDetailsWindow_Click"
+                                                IsEnabled="{Binding HasSelectedCommitDetails}"
+                                                ToolTip="在全屏窗口中查看当前贡献者的全部提交明细（Esc 退出）" />
+                                    </StackPanel>
                                 </Grid>
 
                                 <DataGrid Grid.Row="2"
@@ -1173,7 +1274,7 @@
                                Foreground="{StaticResource AccentBrush}"
                                Margin="0,0,12,0"
                                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
-                    <TextBlock Text="Git CLI · 本地统计" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" />
+                    <TextBlock Text="{Binding ModeEngineText}" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" />
                 </StackPanel>
             </Grid>
         </Grid>
