@@ -12,6 +12,11 @@ public sealed class ProjectItemViewModel : ObservableObject
     {
         Name = config.Name;
         Path = config.Path;
+        SourceType = config.SourceType;
+        GitLabProjectId = config.GitLabProjectId;
+        GitLabPathWithNamespace = config.GitLabPathWithNamespace;
+        GitLabWebUrl = config.GitLabWebUrl;
+        GitLabDefaultBranch = config.GitLabDefaultBranch;
         _isIncluded = config.IsIncluded;
     }
 
@@ -19,6 +24,13 @@ public sealed class ProjectItemViewModel : ObservableObject
 
     public string Name { get; }
     public string Path { get; }
+    public StatisticsMode SourceType { get; }
+    public bool IsGitLab => SourceType == StatisticsMode.GitLab;
+    public long GitLabProjectId { get; }
+    public string GitLabPathWithNamespace { get; }
+    public string GitLabWebUrl { get; }
+    public string GitLabDefaultBranch { get; }
+    public string SourceLabel => IsGitLab ? "GitLab" : "本地";
 
     public bool IsIncluded
     {
@@ -52,6 +64,11 @@ public sealed class ProjectItemViewModel : ObservableObject
     {
         Name = Name,
         Path = Path,
-        IsIncluded = IsIncluded
+        IsIncluded = IsIncluded,
+        SourceType = SourceType,
+        GitLabProjectId = GitLabProjectId,
+        GitLabPathWithNamespace = GitLabPathWithNamespace,
+        GitLabWebUrl = GitLabWebUrl,
+        GitLabDefaultBranch = GitLabDefaultBranch
     };
 }

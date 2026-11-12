@@ -26,14 +26,22 @@ public sealed partial class MainViewModel
             return;
         }
 
-        if (GitStatusTone == StatusTone.Error)
+        if (IsLocalMode)
         {
-            await DetectGitAsync();
-        }
+            if (GitStatusTone == StatusTone.Error)
+            {
+                await DetectGitAsync();
+            }
 
-        if (GitStatusTone == StatusTone.Error)
+            if (GitStatusTone == StatusTone.Error)
+            {
+                SetStatus("未检测到 Git，无法统计。请先安装 Git for Windows。", StatusTone.Error);
+                return;
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(_gitLabToken))
         {
-            SetStatus("未检测到 Git，无法统计。请先安装 Git for Windows。", StatusTone.Error);
+            SetStatus("请先配置 GitLab 连接和访问令牌。", StatusTone.Warning);
             return;
         }
 
@@ -60,14 +68,24 @@ public sealed partial class MainViewModel
             {
                 var item = selectedProjects[index];
                 ProgressText = $"{index + 1} / {selectedProjects.Count}";
-                SetStatus($"正在统计：{item.Name}", StatusTone.Info);
+                SetStatus(
+                    IsLocalMode
+                        ? $"正在统计：{item.Name}"
+                        : $"正在读取 GitLab：{item.Name}（提交较多时需要补查文件数）",
+                    StatusTone.Info);
 
                 try
                 {
-                    var statistics = await _gitService.GetStatisticsAsync(
-                        item.ToConfig(),
-                        query,
-                        cancellationToken);
+                    var statistics = IsLocalMode
+                        ? await _gitService.GetStatisticsAsync(
+                            item.ToConfig(),
+                            query,
+                            cancellationToken)
+                        : await _gitLabService.GetStatisticsAsync(
+                            item.ToConfig(),
+                            new GitLabConnection(_gitLabBaseUrl, _gitLabToken),
+                            query,
+                            cancellationToken);
                     item.LastError = null;
                     results.Add(statistics);
                 }
@@ -181,7 +199,6 @@ public sealed partial class MainViewModel
             .ToDictionary(item => item.Path, item => item.Index, StringComparer.OrdinalIgnoreCase);
 
         AuthorRows = AggregateAuthors(orderedSuccessful);
-        SelectedDetailAuthor = AuthorRows.FirstOrDefault();
         _totalCommits = orderedSuccessful.Sum(result => result.CommitCount);
         _totalAdditions = orderedSuccessful.Sum(result => result.Additions);
         _totalDeletions = orderedSuccessful.Sum(result => result.Deletions);
@@ -300,7 +317,11 @@ public sealed partial class MainViewModel
         var dateRange = since is null
             ? "全部时间"
             : $"{since.Value:yyyy-MM-dd} 至 {untilText}";
-        var branches = IncludeAllBranches ? "所有分支" : "当前分支";
+        var branches = IncludeAllBranches
+            ? "所有分支"
+            : IsLocalMode
+                ? "当前分支"
+                : "默认分支";
         return $"{dateRange} · {branches}";
     }
 

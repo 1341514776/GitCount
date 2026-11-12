@@ -1,0 +1,198 @@
+<Window x:Class="GitCount.GitLabProjectsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GitLab 线上项目"
+        Width="980"
+        Height="760"
+        MinWidth="820"
+        MinHeight="620"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="13"
+        UseLayoutRounding="True">
+    <Window.Resources>
+        <Style x:Key="DialogTextBox" TargetType="TextBox">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="#D0D5DD" />
+            <Setter Property="Background" Value="White" />
+        </Style>
+        <Style x:Key="DialogPasswordBox" TargetType="PasswordBox">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="#D0D5DD" />
+            <Setter Property="Background" Value="White" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24,20,24,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <StackPanel>
+                <TextBlock Text="GitLab 线上模式" FontSize="23" FontWeight="Bold" />
+                <TextBlock Text="连接 GitLab，选择需要统计的线上项目。不会读取或克隆本地仓库。"
+                           FontSize="11.5"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,5,0,0" />
+            </StackPanel>
+            <Border HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Background="#EAF2FF"
+                    CornerRadius="9"
+                    Padding="10,5">
+                <TextBlock Text="GitLab REST API" FontSize="10.5" Foreground="#175CD3" />
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="18,15" Margin="0,16,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,0">
+                    <TextBlock Text="GitLab 根地址" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBox x:Name="BaseUrlBox" Style="{StaticResource DialogTextBox}" Margin="0,6,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,0">
+                    <TextBlock Text="访问令牌" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <PasswordBox x:Name="TokenBox" Style="{StaticResource DialogPasswordBox}" Margin="0,6,0,0" />
+                </StackPanel>
+                <Button Grid.Row="0" Grid.Column="2"
+                        x:Name="LoadButton"
+                        Content="连接并加载项目"
+                        Style="{StaticResource PrimaryButton}"
+                        MinWidth="136"
+                        Margin="0,21,0,0"
+                        Click="LoadProjects_Click" />
+
+                <Border Grid.Row="1" Grid.ColumnSpan="3"
+                        Background="#F8FAFC"
+                        BorderBrush="#EAECF0"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10,7"
+                        Margin="0,12,0,0">
+                    <TextBlock x:Name="ConnectionStatusText"
+                               Text="填写地址和令牌后，点击「连接并加载项目」。令牌会使用 Windows 当前用户加密保存。"
+                               FontSize="10.5"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" />
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" Margin="0,16,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="项目列表" FontSize="13" FontWeight="SemiBold" />
+                <Border Background="#F2F4F7" CornerRadius="8" Padding="8,3" Margin="9,0,0,0">
+                    <TextBlock x:Name="SelectedCountText" Text="已选择 0 / 0" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" />
+                </Border>
+                <TextBox x:Name="SearchBox"
+                         Width="230"
+                         Height="30"
+                         Margin="18,0,0,0"
+                         Padding="9,3"
+                         VerticalContentAlignment="Center"
+                         TextChanged="SearchBox_TextChanged"
+                         BorderBrush="#D0D5DD" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="全选当前"
+                        Style="{StaticResource TextButton}"
+                        Click="SelectVisible_Click" />
+                <Button Content="全不选"
+                        Style="{StaticResource TextButton}"
+                        Click="SelectNone_Click"
+                        Margin="4,0,0,0" />
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource CardStyle}" Padding="2">
+            <Grid>
+                <DataGrid x:Name="ProjectGrid"
+                          RowHeight="44"
+                          ColumnHeaderHeight="38"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="52" CanUserSort="False">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="项目" Width="1.5*" SortMemberPath="Name">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12.5" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                                        <TextBlock Text="{Binding PathWithNamespace}" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding PathWithNamespace}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="默认分支" Binding="{Binding DefaultBranch}" Width="130" />
+                        <DataGridTextColumn Header="最近活动" Binding="{Binding LastActivityText}" Width="110" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <Border x:Name="EmptyOverlay"
+                        Background="White"
+                        Visibility="Visible">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="尚未加载项目" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Text="连接成功后，这里会显示当前账号有权限访问的 GitLab 项目。"
+                                   FontSize="11.5"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,7,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="4" Margin="0,16,0,0">
+            <TextBlock Text="令牌不会写入日志，也不会提交到项目仓库。"
+                       FontSize="10.5"
+                       Foreground="{StaticResource TextMutedBrush}"
+                       VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="取消"
+                        Style="{StaticResource SecondaryButton}"
+                        MinWidth="88"
+                        Margin="0,0,10,0"
+                        Click="Cancel_Click" />
+                <Button x:Name="SaveButton"
+                        Content="保存项目选择"
+                        Style="{StaticResource PrimaryButton}"
+                        MinWidth="132"
+                        IsEnabled="False"
+                        Click="Save_Click" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
