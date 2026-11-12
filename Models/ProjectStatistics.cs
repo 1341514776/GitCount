@@ -11,6 +11,7 @@ public sealed class ProjectStatistics
     public long Additions => Authors.Sum(author => author.Additions);
     public long Deletions => Authors.Sum(author => author.Deletions);
     public int ChangedFiles => Authors.Sum(author => author.ChangedFiles);
+    public int FilteredCommitCount => Authors.Sum(author => author.FilteredCommits);
     public long Net => Additions - Deletions;
 
     public static ProjectStatistics Failed(ProjectConfig project, string message) =>

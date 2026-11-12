@@ -14,4 +14,7 @@ public sealed class ProjectState
     public DateTime? CustomStartDate { get; set; } = DateTime.Today.AddDays(-29);
     public DateTime? CustomEndDate { get; set; } = DateTime.Today;
     public bool IncludeAllBranches { get; set; }
+    public bool LargeCommitFilterEnabled { get; set; } = true;
+    public int LargeCommitFileThreshold { get; set; } = 20;
+    public int LargeCommitAdditionThreshold { get; set; } = 500;
 }

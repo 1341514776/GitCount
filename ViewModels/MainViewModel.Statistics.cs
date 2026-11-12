@@ -38,7 +38,14 @@ public sealed partial class MainViewModel
         }
 
         var (since, until) = GetDateBounds();
-        var query = new StatisticsQuery(since, until, IncludeAllBranches);
+        var query = new StatisticsQuery(
+            since,
+            until,
+            IncludeAllBranches,
+            new CommitFilterOptions(
+                LargeCommitFilterEnabled,
+                LargeCommitFileThreshold,
+                LargeCommitAdditionThreshold));
         var results = new List<ProjectStatistics>();
         var cancelled = false;
 
@@ -178,12 +185,14 @@ public sealed partial class MainViewModel
         _totalCommits = orderedSuccessful.Sum(result => result.CommitCount);
         _totalAdditions = orderedSuccessful.Sum(result => result.Additions);
         _totalDeletions = orderedSuccessful.Sum(result => result.Deletions);
+        _totalFilteredCommits = orderedSuccessful.Sum(result => result.FilteredCommitCount);
 
         ProjectSummaryRows = orderedAll.Select(result => new ProjectSummaryRow
         {
             Name = result.Project.Name,
             Path = result.Project.Path,
             CommitCount = result.CommitCount,
+            FilteredCommitCount = result.FilteredCommitCount,
             Additions = result.Additions,
             Deletions = result.Deletions,
             AuthorCount = result.Authors.Count,
@@ -204,6 +213,7 @@ public sealed partial class MainViewModel
                     Name = author.Name,
                     Email = author.Email,
                     Commits = author.Commits,
+                    FilteredCommits = author.FilteredCommits,
                     Additions = author.Additions,
                     Deletions = author.Deletions,
                     ChangedFiles = author.ChangedFiles
@@ -244,6 +254,7 @@ public sealed partial class MainViewModel
                 row.Email = author.Email;
                 row.CommitDetails.AddRange(author.CommitDetails);
                 row.Commits += author.Commits;
+                row.FilteredCommits += author.FilteredCommits;
                 row.Additions += author.Additions;
                 row.Deletions += author.Deletions;
                 row.ChangedFiles += author.ChangedFiles;
@@ -276,6 +287,7 @@ public sealed partial class MainViewModel
         OnPropertyChanged(nameof(TotalCommits));
         OnPropertyChanged(nameof(TotalAdditions));
         OnPropertyChanged(nameof(TotalDeletions));
+        OnPropertyChanged(nameof(TotalFilteredCommits));
         OnPropertyChanged(nameof(TotalNet));
         OnPropertyChanged(nameof(ProjectSelectionHint));
         OnPropertyChanged(nameof(ResultScopeText));
@@ -312,6 +324,7 @@ public sealed partial class MainViewModel
         _totalCommits = 0;
         _totalAdditions = 0;
         _totalDeletions = 0;
+        _totalFilteredCommits = 0;
         HasCalculated = false;
         IsResultStale = false;
         ResultTimestampText = "尚未统计";

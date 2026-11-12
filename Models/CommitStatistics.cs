@@ -13,5 +13,10 @@ public sealed class CommitStatistics
     public long Additions { get; set; }
     public long Deletions { get; set; }
     public int ChangedFiles { get; set; }
+    public bool IsLineCountFiltered { get; set; }
+    public string? FilterReason { get; set; }
+    public long CountedAdditions => IsLineCountFiltered ? 0 : Additions;
+    public long CountedDeletions => IsLineCountFiltered ? 0 : Deletions;
+    public long CountedNet => CountedAdditions - CountedDeletions;
     public long Net => Additions - Deletions;
 }

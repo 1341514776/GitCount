@@ -16,6 +16,7 @@ public sealed class AuthorRow
     public string Email { get; set; }
     public List<CommitStatistics> CommitDetails { get; } = [];
     public int Commits { get; set; }
+    public int FilteredCommits { get; set; }
     public long Additions { get; set; }
     public long Deletions { get; set; }
     public int ChangedFiles { get; set; }

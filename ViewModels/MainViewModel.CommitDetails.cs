@@ -44,14 +44,18 @@ public sealed partial class MainViewModel
     public bool HasNoSelectedCommitDetails => !HasSelectedCommitDetails;
 
     public int SelectedDetailCommitCount => _selectedAuthorCommits.Count;
-    public long SelectedDetailAdditions => _selectedAuthorCommits.Sum(commit => commit.Additions);
-    public long SelectedDetailDeletions => _selectedAuthorCommits.Sum(commit => commit.Deletions);
+    public int SelectedDetailFilteredCommitCount => _selectedAuthorCommits.Count(commit => commit.IsLineCountFiltered);
+    public bool HasSelectedDetailFilteredCommits => SelectedDetailFilteredCommitCount > 0;
+    public long SelectedDetailAdditions => _selectedAuthorCommits.Sum(commit => commit.CountedAdditions);
+    public long SelectedDetailDeletions => _selectedAuthorCommits.Sum(commit => commit.CountedDeletions);
     public long SelectedDetailNet => SelectedDetailAdditions - SelectedDetailDeletions;
     public string CommitChartMaxText => FormatAxisValue(_commitChartMaxValue);
     public string CommitChartMidText => FormatAxisValue(_commitChartMaxValue / 2);
     public string CommitChartHint => _selectedAuthorCommits.Count == 0
         ? "暂无提交数据"
-        : $"{_selectedAuthorCommits.Count:N0} 次提交 · 按时间升序";
+        : SelectedDetailFilteredCommitCount == 0
+            ? $"{_selectedAuthorCommits.Count:N0} 次提交 · 按时间升序"
+            : $"{_selectedAuthorCommits.Count:N0} 次提交 · 已过滤 {SelectedDetailFilteredCommitCount:N0} 次";
 
     private void UpdateSelectedCommitDetails()
     {
@@ -63,7 +67,7 @@ public sealed partial class MainViewModel
         }
 
         var rawMaximum = _selectedDetailAuthor.CommitDetails
-            .Select(commit => Math.Max(commit.Additions, commit.Deletions))
+            .Select(commit => Math.Max(commit.CountedAdditions, commit.CountedDeletions))
             .DefaultIfEmpty(0)
             .Max();
         var chartMaximum = NiceCeiling(rawMaximum);
@@ -82,6 +86,8 @@ public sealed partial class MainViewModel
     {
         SelectedAuthorCommits = rows;
         OnPropertyChanged(nameof(SelectedDetailCommitCount));
+        OnPropertyChanged(nameof(SelectedDetailFilteredCommitCount));
+        OnPropertyChanged(nameof(HasSelectedDetailFilteredCommits));
         OnPropertyChanged(nameof(SelectedDetailAdditions));
         OnPropertyChanged(nameof(SelectedDetailDeletions));
         OnPropertyChanged(nameof(SelectedDetailNet));
