@@ -216,7 +216,116 @@ public sealed class GitLabService
         StatisticsQuery query,
         CancellationToken cancellationToken)
     {
-        var commits = new List<GitLabCommitDto>();
+        var commits = new Dictionary<string, GitLabCommitDto>(StringComparer.Ordinal);
+
+        if (!query.AllBranches)
+        {
+            await CollectCommitsAsync(
+                apiBase,
+                token,
+                project,
+                query,
+                refName: null,
+                commits,
+                cancellationToken);
+        }
+        else
+        {
+            // 部分 GitLab 版本的 all=true 分页会重复返回同一批提交并漏掉最早记录，
+            // 因此改为逐个分支读取后按提交 ID 去重，确保结果覆盖所有分支。
+            var branchNames = await GetBranchNamesAsync(apiBase, token, project.GitLabProjectId, cancellationToken);
+            if (branchNames.Count == 0)
+            {
+                await CollectCommitsAsync(
+                    apiBase,
+                    token,
+                    project,
+                    query,
+                    refName: null,
+                    commits,
+                    cancellationToken);
+            }
+            else
+            {
+                foreach (var branchName in branchNames)
+                {
+                    try
+                    {
+                        await CollectCommitsAsync(
+                            apiBase,
+                            token,
+                            project,
+                            query,
+                            branchName,
+                            commits,
+                            cancellationToken);
+                    }
+                    catch (GitLabApiException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        // 分支可能在读取过程中被删除，继续统计其余分支。
+                    }
+                }
+            }
+        }
+
+        return commits.Values.ToList();
+    }
+
+    private static async Task<List<string>> GetBranchNamesAsync(
+        string apiBase,
+        string token,
+        long projectId,
+        CancellationToken cancellationToken)
+    {
+        var names = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var page = 1;
+
+        while (page <= 1000)
+        {
+            var uri = new Uri(
+                apiBase
+                + "/projects/"
+                + projectId.ToString(InvariantCulture)
+                + "/repository/branches?per_page="
+                + PageSize.ToString(InvariantCulture)
+                + "&page="
+                + page.ToString(InvariantCulture));
+
+            using var response = await SendAsync(uri, token, cancellationToken);
+            var batch = await response.Content.ReadFromJsonAsync<List<GitLabBranchDto>>(cancellationToken)
+                ?? [];
+
+            foreach (var branch in batch)
+            {
+                var name = branch.Name?.Trim();
+                if (!string.IsNullOrWhiteSpace(name) && seen.Add(name))
+                {
+                    names.Add(name);
+                }
+            }
+
+            var nextPage = GetNextPage(response);
+            if (nextPage is null || batch.Count == 0)
+            {
+                break;
+            }
+
+            page = nextPage.Value;
+        }
+
+        return names;
+    }
+
+    private static async Task CollectCommitsAsync(
+        string apiBase,
+        string token,
+        ProjectConfig project,
+        StatisticsQuery query,
+        string? refName,
+        Dictionary<string, GitLabCommitDto> commits,
+        CancellationToken cancellationToken)
+    {
         var page = 1;
         while (page <= 10000)
         {
@@ -227,9 +336,9 @@ public sealed class GitLabService
                 "page=" + page.ToString(InvariantCulture)
             };
 
-            if (query.AllBranches)
+            if (!string.IsNullOrWhiteSpace(refName))
             {
-                queryParts.Add("all=true");
+                queryParts.Add("ref_name=" + Uri.EscapeDataString(refName));
             }
 
             if (query.Since is { } since)
@@ -252,7 +361,17 @@ public sealed class GitLabService
             using var response = await SendAsync(uri, token, cancellationToken);
             var batch = await response.Content.ReadFromJsonAsync<List<GitLabCommitDto>>(cancellationToken)
                 ?? [];
-            commits.AddRange(batch);
+
+            foreach (var commit in batch)
+            {
+                var id = commit.Id?.Trim();
+                if (string.IsNullOrEmpty(id))
+                {
+                    continue;
+                }
+
+                commits.TryAdd(id, commit);
+            }
 
             var nextPage = GetNextPage(response);
             if (nextPage is null || batch.Count == 0)
@@ -262,8 +381,6 @@ public sealed class GitLabService
 
             page = nextPage.Value;
         }
-
-        return commits;
     }
 
     private async Task PopulateChangedFilesAsync(
@@ -506,6 +623,12 @@ public sealed class GitLabService
 
         [JsonPropertyName("last_activity_at")]
         public string? LastActivityAt { get; init; }
+    }
+
+    private sealed class GitLabBranchDto
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; init; }
     }
 
     private sealed class GitLabCommitDto
